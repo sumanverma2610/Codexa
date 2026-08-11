@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/submissions")
 public class SubmissionController {
@@ -29,5 +31,15 @@ public class SubmissionController {
                 submissionService.createSubmission(request, email);
 
         return ResponseEntity.ok(submission);
+    }
+    @GetMapping("/my")
+    public ResponseEntity<List<Submission>> getMySubmissions(
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        return ResponseEntity.ok(
+                submissionService.getMySubmissions(email)
+        );
     }
 }

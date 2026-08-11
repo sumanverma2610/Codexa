@@ -24,6 +24,10 @@ public class Submission {
     @Column(nullable = false)
     private SubmissionStatus status;
 
+    // Result returned by CodeExecutorService
+    @Column(columnDefinition = "LONGTEXT")
+    private String result;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;

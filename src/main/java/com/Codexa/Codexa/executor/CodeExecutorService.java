@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CodeExecutorService {
@@ -48,12 +49,25 @@ public class CodeExecutorService {
                 return "Compilation Error:\n" + compileOutput;
             }
 
-            // 4. Run compiled Java program
+            // 4. Run Java program
             Process runProcess =
                     new ProcessBuilder("java", "Main")
                             .redirectErrorStream(true)
                             .start();
 
+            // 5. Wait maximum 5 seconds
+            boolean finished =
+                    runProcess.waitFor(5, TimeUnit.SECONDS);
+
+            // 6. Timeout
+            if (!finished) {
+
+                runProcess.destroyForcibly();
+
+                return "Time Limit Exceeded";
+            }
+
+            // 7. Read program output
             BufferedReader runReader =
                     new BufferedReader(
                             new InputStreamReader(
@@ -67,14 +81,14 @@ public class CodeExecutorService {
                 output.append(line).append("\n");
             }
 
-            int runExitCode = runProcess.waitFor();
+            // 8. Runtime error
+            int runExitCode = runProcess.exitValue();
 
-            // 5. Runtime error
             if (runExitCode != 0) {
                 return "Runtime Error:\n" + output;
             }
 
-            // 6. Successful execution
+            // 9. Successful execution
             return output.toString();
 
         } catch (Exception e) {

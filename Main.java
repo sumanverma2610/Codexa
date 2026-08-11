@@ -1,6 +1,1 @@
-public class Main {
-    public static void main(String[] args) {
-        int x = 10 / 0;
-        System.out.println(x);
-    }
-}
+public class Main { public static void main(String[] args) { int x = 10/0 ;System.out.println(x); } }
