@@ -5,6 +5,8 @@ import com.Codexa.Codexa.entity.Problem;
 import com.Codexa.Codexa.entity.Submission;
 import com.Codexa.Codexa.entity.SubmissionStatus;
 import com.Codexa.Codexa.entity.User;
+import com.Codexa.Codexa.exception.ForbiddenException;
+import com.Codexa.Codexa.exception.ResourceNotFoundException;
 import com.Codexa.Codexa.executor.CodeExecutorService;
 import com.Codexa.Codexa.repository.ProblemRepository;
 import com.Codexa.Codexa.repository.SubmissionRepository;
@@ -101,5 +103,23 @@ public class SubmissionService {
                         new RuntimeException("User not found"));
 
         return submissionRepository.findByUser(user);
+    }
+    public Submission getSubmissionById(Long id, String email) {
+
+        Submission submission = submissionRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Submission not found"));
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        if (!submission.getUser().getId().equals(user.getId())) {
+            throw new ForbiddenException(
+                    "You cannot access this submission"
+            );
+        }
+
+        return submission;
     }
 }

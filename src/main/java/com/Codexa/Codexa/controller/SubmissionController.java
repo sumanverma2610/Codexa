@@ -42,4 +42,15 @@ public class SubmissionController {
                 submissionService.getMySubmissions(email)
         );
     }
+@GetMapping("/{id}")
+public ResponseEntity<Submission> getSubmissionById(
+        @PathVariable Long id,
+        Authentication authentication) {
+
+    String email = authentication.getName();
+
+    return ResponseEntity.ok(
+            submissionService.getSubmissionById(id, email)
+    );
+}
 }
