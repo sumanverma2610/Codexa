@@ -1,6 +1,7 @@
 package com.Codexa.Codexa.service;
 
 import com.Codexa.Codexa.dto.CreateSubmissionRequest;
+import com.Codexa.Codexa.dto.SubmissionResponse;
 import com.Codexa.Codexa.entity.Problem;
 import com.Codexa.Codexa.entity.Submission;
 import com.Codexa.Codexa.entity.SubmissionStatus;
@@ -121,5 +122,20 @@ public class SubmissionService {
         }
 
         return submission;
+    }
+
+
+    private SubmissionResponse convertToResponse(Submission submission) {
+
+        SubmissionResponse response = new SubmissionResponse();
+
+        response.setId(submission.getId());
+        response.setProblemId(submission.getProblem().getId());
+        response.setLanguage(submission.getLanguage());
+        response.setStatus(submission.getStatus());
+        response.setResult(submission.getResult());
+        response.setCode(submission.getCode());
+
+        return response;
     }
 }
