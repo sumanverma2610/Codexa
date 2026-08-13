@@ -1,16 +1,17 @@
- package com.Codexa.Codexa.controller;
+package com.Codexa.Codexa.controller;
 
 import com.Codexa.Codexa.dto.CreateTestCaseRequest;
 import com.Codexa.Codexa.entity.TestCase;
 import com.Codexa.Codexa.service.TestCaseService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/problems/{problemId}/testcases")
+@RequestMapping("/api/problems")
 public class TestCaseController {
 
     private final TestCaseService testCaseService;
@@ -19,22 +20,25 @@ public class TestCaseController {
         this.testCaseService = testCaseService;
     }
 
-    @PostMapping
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{problemId}/test-cases")
     public ResponseEntity<TestCase> createTestCase(
             @PathVariable Long problemId,
             @Valid @RequestBody CreateTestCaseRequest request) {
 
-        return ResponseEntity.ok(
-                testCaseService.createTestCase(problemId, request)
-        );
+        TestCase testCase =
+                testCaseService.createTestCase(problemId, request);
+
+        return ResponseEntity.ok(testCase);
     }
 
-    @GetMapping
+    @GetMapping("/{problemId}/test-cases")
     public ResponseEntity<List<TestCase>> getTestCases(
             @PathVariable Long problemId) {
 
         return ResponseEntity.ok(
-                testCaseService.getTestCasesByProblem(problemId)
+                testCaseService.getSampleTestCases(problemId)
         );
     }
 }

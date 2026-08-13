@@ -1,6 +1,7 @@
 package com.Codexa.Codexa.controller;
 
 import com.Codexa.Codexa.dto.CreateSubmissionRequest;
+import com.Codexa.Codexa.dto.SubmissionResponse;
 import com.Codexa.Codexa.entity.Submission;
 import com.Codexa.Codexa.service.SubmissionService;
 import jakarta.validation.Valid;
@@ -33,7 +34,7 @@ public class SubmissionController {
         return ResponseEntity.ok(submission);
     }
     @GetMapping("/my")
-    public ResponseEntity<List<Submission>> getMySubmissions(
+    public ResponseEntity<List<SubmissionResponse>> getMySubmissions(
             Authentication authentication) {
 
         String email = authentication.getName();
@@ -42,15 +43,15 @@ public class SubmissionController {
                 submissionService.getMySubmissions(email)
         );
     }
-@GetMapping("/{id}")
-public ResponseEntity<Submission> getSubmissionById(
-        @PathVariable Long id,
-        Authentication authentication) {
+    @GetMapping("/{id}")
+    public ResponseEntity<SubmissionResponse> getSubmissionById(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-    String email = authentication.getName();
+        String email = authentication.getName();
 
-    return ResponseEntity.ok(
-            submissionService.getSubmissionById(id, email)
-    );
-}
+        return ResponseEntity.ok(
+                submissionService.getSubmissionById(id, email)
+        );
+    }
 }

@@ -1,4 +1,4 @@
- package com.Codexa.Codexa.dto;
+package com.Codexa.Codexa.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
@@ -13,6 +13,8 @@ public class CreateTestCaseRequest {
 
     @NotBlank(message = "Expected output is required")
     private String expectedOutput;
+
+    private boolean sample;
 
     private boolean hidden;
 }

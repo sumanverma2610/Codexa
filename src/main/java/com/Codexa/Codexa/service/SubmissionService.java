@@ -97,19 +97,27 @@ public class SubmissionService {
         // Save submission
         return submissionRepository.save(submission);
     }
-    public List<Submission> getMySubmissions(String email) {
+    public List<SubmissionResponse> getMySubmissions(String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
-        return submissionRepository.findByUser(user);
+        List<Submission> submissions =
+                submissionRepository.findByUser(user);
+
+        return submissions.stream()
+                .map(this::convertToResponse)
+                .toList();
     }
-    public Submission getSubmissionById(Long id, String email) {
+
+    public SubmissionResponse getSubmissionById(Long id, String email) {
 
         Submission submission = submissionRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Submission not found"));
+                        new ResourceNotFoundException(
+                                "Submission not found"
+                        ));
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -121,9 +129,8 @@ public class SubmissionService {
             );
         }
 
-        return submission;
+        return convertToResponse(submission);
     }
-
 
     private SubmissionResponse convertToResponse(Submission submission) {
 
@@ -138,4 +145,5 @@ public class SubmissionService {
 
         return response;
     }
+
 }

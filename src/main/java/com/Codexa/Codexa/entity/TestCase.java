@@ -1,6 +1,7 @@
 package com.Codexa.Codexa.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,17 +9,21 @@ import lombok.Setter;
 @Table(name = "test_cases")
 @Getter
 @Setter
+@AllArgsConstructor
 public class TestCase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String input;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String expectedOutput;
+
+    @Column(nullable = false)
+    private boolean sample;
 
     @Column(nullable = false)
     private boolean hidden;
@@ -28,11 +33,5 @@ public class TestCase {
     private Problem problem;
 
     public TestCase() {
-    }
-
-    public TestCase(String input, String expectedOutput, boolean hidden) {
-        this.input = input;
-        this.expectedOutput = expectedOutput;
-        this.hidden = hidden;
     }
 }

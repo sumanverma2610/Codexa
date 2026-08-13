@@ -35,6 +35,7 @@ public class TestCaseService {
 
         testCase.setInput(request.getInput());
         testCase.setExpectedOutput(request.getExpectedOutput());
+        testCase.setSample(request.isSample());
         testCase.setHidden(request.isHidden());
         testCase.setProblem(problem);
 
@@ -48,5 +49,14 @@ public class TestCaseService {
         }
 
         return testCaseRepository.findByProblemId(problemId);
+    }
+    public List<TestCase> getSampleTestCases(Long problemId) {
+
+        if (!problemRepository.existsById(problemId)) {
+            throw new RuntimeException("Problem not found");
+        }
+
+        return testCaseRepository
+                .findByProblemIdAndSampleTrue(problemId);
     }
 }

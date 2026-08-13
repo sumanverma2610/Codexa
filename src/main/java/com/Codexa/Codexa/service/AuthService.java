@@ -3,6 +3,7 @@ package com.Codexa.Codexa.service;
 import com.Codexa.Codexa.dto.LoginRequest;
 import com.Codexa.Codexa.dto.LoginResponse;
 import com.Codexa.Codexa.dto.RegisterRequest;
+import com.Codexa.Codexa.entity.Role;
 import com.Codexa.Codexa.entity.User;
 import com.Codexa.Codexa.exception.DuplicateEmailException;
 import com.Codexa.Codexa.repository.UserRepository;
@@ -40,6 +41,7 @@ public class AuthService {
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
+        user.setRole(Role.USER);
 
         userRepository.save(user);
 
@@ -61,7 +63,10 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
 
         return new LoginResponse(token);
     }
