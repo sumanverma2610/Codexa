@@ -6,14 +6,16 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class CodeExecutorService {
 
-    public String execute(String code) {
+    public String execute(String code, String input) {
 
         try {
+
             // 1. Create Java file
             File file = new File("Main.java");
 
@@ -34,7 +36,8 @@ public class CodeExecutorService {
                             )
                     );
 
-            StringBuilder compileOutput = new StringBuilder();
+            StringBuilder compileOutput =
+                    new StringBuilder();
 
             String line;
 
@@ -42,11 +45,14 @@ public class CodeExecutorService {
                 compileOutput.append(line).append("\n");
             }
 
-            int compileExitCode = compileProcess.waitFor();
+            int compileExitCode =
+                    compileProcess.waitFor();
 
             // 3. Compilation error
             if (compileExitCode != 0) {
-                return "Compilation Error:\n" + compileOutput;
+
+                return "Compilation Error:\n"
+                        + compileOutput;
             }
 
             // 4. Run Java program
@@ -55,11 +61,28 @@ public class CodeExecutorService {
                             .redirectErrorStream(true)
                             .start();
 
-            // 5. Wait maximum 5 seconds
-            boolean finished =
-                    runProcess.waitFor(5, TimeUnit.SECONDS);
+            // 5. Send input to program
+            if (input != null) {
 
-            // 6. Timeout
+                OutputStream outputStream =
+                        runProcess.getOutputStream();
+
+                outputStream.write(
+                        input.getBytes()
+                );
+
+                outputStream.flush();
+                outputStream.close();
+            }
+
+            // 6. Wait maximum 5 seconds
+            boolean finished =
+                    runProcess.waitFor(
+                            5,
+                            TimeUnit.SECONDS
+                    );
+
+            // 7. Time limit exceeded
             if (!finished) {
 
                 runProcess.destroyForcibly();
@@ -67,7 +90,7 @@ public class CodeExecutorService {
                 return "Time Limit Exceeded";
             }
 
-            // 7. Read program output
+            // 8. Read program output
             BufferedReader runReader =
                     new BufferedReader(
                             new InputStreamReader(
@@ -75,25 +98,32 @@ public class CodeExecutorService {
                             )
                     );
 
-            StringBuilder output = new StringBuilder();
+            StringBuilder output =
+                    new StringBuilder();
 
             while ((line = runReader.readLine()) != null) {
-                output.append(line).append("\n");
+
+                output.append(line)
+                        .append("\n");
             }
 
-            // 8. Runtime error
-            int runExitCode = runProcess.exitValue();
+            // 9. Runtime error
+            int runExitCode =
+                    runProcess.exitValue();
 
             if (runExitCode != 0) {
-                return "Runtime Error:\n" + output;
+
+                return "Runtime Error:\n"
+                        + output;
             }
 
-            // 9. Successful execution
+            // 10. Successful execution
             return output.toString();
 
         } catch (Exception e) {
 
-            return "Execution Error: " + e.getMessage();
+            return "Execution Error: "
+                    + e.getMessage();
         }
     }
 }

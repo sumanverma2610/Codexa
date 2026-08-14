@@ -14,8 +14,13 @@ public class CodeExecutorController {
     }
 
     @PostMapping("/execute")
-    public String execute(@RequestBody String code) {
+    public String execute(
+            @RequestParam String input,
+            @RequestBody String code) {
 
-        return codeExecutorService.execute(code);
+        return codeExecutorService.execute(
+                code,
+                input
+        );
     }
 }
