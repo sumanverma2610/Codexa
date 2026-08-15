@@ -16,3 +16,37 @@ The project is built using Spring Boot and provides REST APIs for authentication
 - Protected REST APIs
 - Users can access only their own submissions
 - Unauthorized access returns `403 Forbidden`
+
+### 🧩 Problem Management
+- Create and manage coding problems
+- Problem-based test cases
+- Admin-only test case management
+
+### 🧪 Test Case Management
+- Create test cases for problems
+- Input and expected output support
+- Sample test cases
+- Hidden test cases
+- Test cases stored in MySQL
+
+### ⚙️ Java Code Execution
+- Compile submitted Java code using `javac`
+- Execute compiled Java programs
+- Pass test-case input through `System.in`
+- Capture program output
+- Detect compilation errors
+- Detect runtime errors
+- 5-second execution timeout
+
+### 🧑‍⚖️ Code Judge
+Submitted code is executed against the problem's test cases.
+
+The submission can receive:
+
+- `PENDING`
+- `RUNNING`
+- `ACCEPTED`
+- `WRONG_ANSWER`
+- `COMPILATION_ERROR`
+- `RUNTIME_ERROR`
+- `TIME_LIMIT_EXCEEDED`
