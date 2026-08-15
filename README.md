@@ -1,91 +1,92 @@
-# Codexa - Online Code Judge Backend
+# Codexa — Online Code Judge Backend
 
-Codexa is a backend application for an online coding platform where users can solve programming problems, submit Java code, and receive automatic results based on predefined test cases.
+Codexa is a backend REST API for an online coding platform where users can browse programming problems, submit solutions, and receive automated judging results.
 
-The project is built using Spring Boot and provides REST APIs for authentication, problem management, test cases, code execution, submissions, and role-based authorization.
+The application is built with **Java, Spring Boot, Spring Security, JWT, JPA/Hibernate, and MySQL**. It includes role-based access control, secure authentication, test-case management, Java code execution, and submission tracking.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-### 🔐 Authentication & Authorization
-- User registration and login
+### Authentication & Security
 - JWT-based authentication
-- Role-based authorization
-- ADMIN and USER roles
+- Secure user registration and login
+- BCrypt password hashing
+- Role-based authorization with `ADMIN` and `USER`
 - Protected REST APIs
-- Users can access only their own submissions
-- Unauthorized access returns `403 Forbidden`
+- Ownership validation for user submissions
+- Centralized exception handling
 
-### 🧩 Problem Management
+### Problem & Test Case Management
 - Create and manage coding problems
-- Problem-based test cases
-- Admin-only test case management
+- Associate multiple test cases with each problem
+- Support for sample and hidden test cases
+- Admin-controlled test case management
 
-### 🧪 Test Case Management
-- Create test cases for problems
-- Input and expected output support
-- Sample test cases
-- Hidden test cases
-- Test cases stored in MySQL
+### Code Execution
+- Java source-code compilation using `javac`
+- Automatic program execution
+- Input/output handling
+- Compilation error detection
+- Runtime error detection
+- Execution timeout handling
 
-### ⚙️ Java Code Execution
-- Compile submitted Java code using `javac`
-- Execute compiled Java programs
-- Pass test-case input through `System.in`
-- Capture program output
-- Detect compilation errors
-- Detect runtime errors
-- 5-second execution timeout
-
-### 🧑‍⚖️ Code Judge
-Submitted code is executed against the problem's test cases.
-
-The submission can receive:
-
-- `PENDING`
-- `RUNNING`
-- `ACCEPTED`
-- `WRONG_ANSWER`
-- `COMPILATION_ERROR`
-- `RUNTIME_ERROR`
-- `TIME_LIMIT_EXCEEDED`
-
-### 📊 Submission Management
-- Submit code
-- View user's submissions
-- View individual submissions
-- Submission ownership validation
-- Store submission code, language, result and status
-
-### 🛡️ Error Handling
-- Global exception handling
-- Validation error responses
-- Duplicate email handling
-- Resource not found handling
-- Forbidden access handling
-- Consistent HTTP status codes
+### Submission & Judging
+- Submit programming solutions
+- Execute submissions against test cases
+- Store submission code and execution results
+- Track submission status
+- View personal submission history
+- Prevent users from accessing other users' submissions
 
 ---
 
-## 🛠️ Technologies Used
+## 🛠️ Tech Stack
 
-### Backend
-- Java
-- Spring Boot
-- Spring Web
-- Spring Security
-- Spring Data JPA
-- Hibernate
-- JWT
+| Category | Technology |
+|---|---|
+| Language | Java |
+| Framework | Spring Boot |
+| Security | Spring Security + JWT |
+| ORM | Spring Data JPA / Hibernate |
+| Database | MySQL |
+| API | REST |
+| Validation | Jakarta Bean Validation |
+| Build Tool | Maven |
+| API Testing | Postman |
+| Version Control | Git / GitHub |
 
+---
 
-### Database
-- MySQL
+## 🏗️ Architecture
 
-### Tools
-- IntelliJ IDEA
-- Postman
-- Git
-- GitHub
-- Maven
+```text
+                    ┌─────────────────┐
+                    │     Client      │
+                    │    Postman /    │
+                    │    Frontend     │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   REST API      │
+                    │   Controllers   │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │    Services     │
+                    │ Business Logic  │
+                    └──────┬─────┬────┘
+                           │     │
+                ┌──────────┘     └──────────┐
+                ▼                           ▼
+        ┌───────────────┐           ┌────────────────┐
+        │  Repositories │           │ Code Executor  │
+        │     JPA       │           │ javac + java   │
+        └───────┬───────┘           └───────┬────────┘
+                │                           │
+                ▼                           ▼
+        ┌───────────────┐           ┌────────────────┐
+        │     MySQL     │           │ Test Execution │
+        └───────────────┘           └────────────────┘
