@@ -78,3 +78,14 @@ The submission can receive:
 - Spring Data JPA
 - Hibernate
 - JWT
+
+
+### Database
+- MySQL
+
+### Tools
+- IntelliJ IDEA
+- Postman
+- Git
+- GitHub
+- Maven
