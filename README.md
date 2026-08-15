@@ -50,3 +50,31 @@ The submission can receive:
 - `COMPILATION_ERROR`
 - `RUNTIME_ERROR`
 - `TIME_LIMIT_EXCEEDED`
+
+### 📊 Submission Management
+- Submit code
+- View user's submissions
+- View individual submissions
+- Submission ownership validation
+- Store submission code, language, result and status
+
+### 🛡️ Error Handling
+- Global exception handling
+- Validation error responses
+- Duplicate email handling
+- Resource not found handling
+- Forbidden access handling
+- Consistent HTTP status codes
+
+---
+
+## 🛠️ Technologies Used
+
+### Backend
+- Java
+- Spring Boot
+- Spring Web
+- Spring Security
+- Spring Data JPA
+- Hibernate
+- JWT
