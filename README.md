@@ -90,3 +90,7 @@ The application is built with **Java, Spring Boot, Spring Security, JWT, JPA/Hib
         ┌───────────────┐           ┌────────────────┐
         │     MySQL     │           │ Test Execution │
         └───────────────┘           └────────────────┘
+
+
+Author 
+Suman Verma
