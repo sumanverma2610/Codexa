@@ -92,5 +92,5 @@ The application is built with **Java, Spring Boot, Spring Security, JWT, JPA/Hib
         └───────────────┘           └────────────────┘
 
 
-Author 
+## Author
 Suman Verma
