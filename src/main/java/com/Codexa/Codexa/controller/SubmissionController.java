@@ -5,6 +5,7 @@ import com.Codexa.Codexa.dto.SubmissionResponse;
 import com.Codexa.Codexa.entity.Submission;
 import com.Codexa.Codexa.service.SubmissionService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -65,13 +66,19 @@ public class SubmissionController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<SubmissionResponse>> getMySubmissions(
+    public ResponseEntity<Page<SubmissionResponse>> getMySubmissions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
 
         String email = authentication.getName();
 
         return ResponseEntity.ok(
-                submissionService.getMySubmissions(email)
+                submissionService.getMySubmissions(
+                        email,
+                        page,
+                        size
+                )
         );
     }
 

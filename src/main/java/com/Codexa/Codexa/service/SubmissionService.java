@@ -14,8 +14,11 @@ import com.Codexa.Codexa.repository.ProblemRepository;
 import com.Codexa.Codexa.repository.SubmissionRepository;
 import com.Codexa.Codexa.repository.TestCaseRepository;
 import com.Codexa.Codexa.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 @Service
@@ -200,8 +203,10 @@ public class SubmissionService {
         );
     }
 
-    public List<SubmissionResponse> getMySubmissions(
-            String email) {
+    public Page<SubmissionResponse> getMySubmissions(
+            String email,
+            int page,
+            int size) {
 
         User user =
                 userRepository.findByEmail(email)
@@ -210,12 +215,22 @@ public class SubmissionService {
                                         "User not found"
                                 ));
 
-        List<Submission> submissions =
-                submissionRepository.findByUser(user);
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by("id").descending()
+                );
 
-        return submissions.stream()
-                .map(this::convertToResponse)
-                .toList();
+        Page<Submission> submissions =
+                submissionRepository.findByUser(
+                        user,
+                        pageable
+                );
+
+        return submissions.map(
+                this::convertToResponse
+        );
     }
 
     public SubmissionResponse getSubmissionById(

@@ -73,4 +73,33 @@ public class TestCaseController {
 
         return response;
     }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{problemId}/test-cases/{testCaseId}")
+    public ResponseEntity<TestCase> updateTestCase(
+            @PathVariable Long problemId,
+            @PathVariable Long testCaseId,
+            @Valid @RequestBody CreateTestCaseRequest request) {
+
+        return ResponseEntity.ok(
+                testCaseService.updateTestCase(
+                        testCaseId,
+                        request
+                )
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{problemId}/test-cases/{testCaseId}")
+    public ResponseEntity<String> deleteTestCase(
+            @PathVariable Long problemId,
+            @PathVariable Long testCaseId) {
+
+        testCaseService.deleteTestCase(testCaseId);
+
+        return ResponseEntity.ok(
+                "Test case deleted successfully"
+        );
+    }
 }

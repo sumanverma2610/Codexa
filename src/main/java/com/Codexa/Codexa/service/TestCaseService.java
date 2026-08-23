@@ -59,4 +59,29 @@ public class TestCaseService {
         return testCaseRepository
                 .findByProblemIdAndSampleTrue(problemId);
     }
+
+    public TestCase updateTestCase(
+            Long testCaseId,
+            CreateTestCaseRequest request) {
+
+        TestCase testCase = testCaseRepository.findById(testCaseId)
+                .orElseThrow(() ->
+                        new RuntimeException("Test case not found"));
+
+        testCase.setInput(request.getInput());
+        testCase.setExpectedOutput(request.getExpectedOutput());
+        testCase.setSample(request.isSample());
+        testCase.setHidden(request.isHidden());
+
+        return testCaseRepository.save(testCase);
+    }
+
+    public void deleteTestCase(Long testCaseId) {
+
+        TestCase testCase = testCaseRepository.findById(testCaseId)
+                .orElseThrow(() ->
+                        new RuntimeException("Test case not found"));
+
+        testCaseRepository.delete(testCase);
+    }
 }
