@@ -9,7 +9,9 @@ public class CodeExecutorController {
 
     private final CodeExecutorService codeExecutorService;
 
-    public CodeExecutorController(CodeExecutorService codeExecutorService) {
+    public CodeExecutorController(
+            CodeExecutorService codeExecutorService) {
+
         this.codeExecutorService = codeExecutorService;
     }
 
