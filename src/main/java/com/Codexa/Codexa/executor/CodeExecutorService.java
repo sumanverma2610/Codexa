@@ -3,10 +3,13 @@ package com.Codexa.Codexa.executor;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -14,18 +17,42 @@ public class CodeExecutorService {
 
     public String execute(String code, String input) {
 
+        // Create a unique folder for every execution
+        Path executionDirectory =
+                Paths.get(
+                        "execution",
+                        UUID.randomUUID().toString()
+                );
+
         try {
 
-            // 1. Create Java file
-            File file = new File("Main.java");
+            // 1. Create execution directory
 
-            FileWriter writer = new FileWriter(file);
-            writer.write(code);
-            writer.close();
+            Files.createDirectories(
+                    executionDirectory
+            );
+            // 2. Create Main.java
 
-            // 2. Compile Java code
+            Path javaFile =
+                    executionDirectory.resolve(
+                            "Main.java"
+                    );
+
+            Files.writeString(
+                    javaFile,
+                    code
+            );
+
+            // 3. Compile Java code
+
             Process compileProcess =
-                    new ProcessBuilder("javac", "Main.java")
+                    new ProcessBuilder(
+                            "javac",
+                            "Main.java"
+                    )
+                            .directory(
+                                    executionDirectory.toFile()
+                            )
                             .redirectErrorStream(true)
                             .start();
 
@@ -42,26 +69,38 @@ public class CodeExecutorService {
             String line;
 
             while ((line = compileReader.readLine()) != null) {
-                compileOutput.append(line).append("\n");
+
+                compileOutput
+                        .append(line)
+                        .append("\n");
             }
 
             int compileExitCode =
                     compileProcess.waitFor();
 
-            // 3. Compilation error
+            // 4. Compilation error
+
             if (compileExitCode != 0) {
 
                 return "Compilation Error:\n"
                         + compileOutput;
             }
 
-            // 4. Run Java program
+            // 5. Run Java program
+
             Process runProcess =
-                    new ProcessBuilder("java", "Main")
+                    new ProcessBuilder(
+                            "java",
+                            "Main"
+                    )
+                            .directory(
+                                    executionDirectory.toFile()
+                            )
                             .redirectErrorStream(true)
                             .start();
 
-            // 5. Send input to program
+            // 6. Send input
+
             if (input != null) {
 
                 OutputStream outputStream =
@@ -75,14 +114,16 @@ public class CodeExecutorService {
                 outputStream.close();
             }
 
-            // 6. Wait maximum 5 seconds
+            // 7. Maximum execution time = 5 seconds
+
             boolean finished =
                     runProcess.waitFor(
                             5,
                             TimeUnit.SECONDS
                     );
 
-            // 7. Time limit exceeded
+            // 8. Time limit exceeded
+
             if (!finished) {
 
                 runProcess.destroyForcibly();
@@ -90,7 +131,8 @@ public class CodeExecutorService {
                 return "Time Limit Exceeded";
             }
 
-            // 8. Read program output
+            // 9. Read program output
+
             BufferedReader runReader =
                     new BufferedReader(
                             new InputStreamReader(
@@ -103,11 +145,13 @@ public class CodeExecutorService {
 
             while ((line = runReader.readLine()) != null) {
 
-                output.append(line)
+                output
+                        .append(line)
                         .append("\n");
             }
 
-            // 9. Runtime error
+            // 10. Runtime error
+
             int runExitCode =
                     runProcess.exitValue();
 
@@ -117,13 +161,57 @@ public class CodeExecutorService {
                         + output;
             }
 
-            // 10. Successful execution
+            // 11. Successful execution
+
             return output.toString();
 
         } catch (Exception e) {
 
             return "Execution Error: "
                     + e.getMessage();
+
+        } finally {
+
+            // 12. Delete temporary files
+
+            deleteDirectory(
+                    executionDirectory
+            );
+        }
+    }
+
+    // Delete execution directory
+
+    private void deleteDirectory(
+            Path directory) {
+
+        try {
+
+            if (!Files.exists(directory)) {
+                return;
+            }
+
+            Files.walk(directory)
+                    .sorted(
+                            Comparator.reverseOrder()
+                    )
+                    .forEach(path -> {
+
+                        try {
+
+                            Files.deleteIfExists(
+                                    path
+                            );
+
+                        } catch (Exception e) {
+
+                            // Ignore cleanup errors
+                        }
+                    });
+
+        } catch (Exception e) {
+
+            // Ignore cleanup errors
         }
     }
 }
