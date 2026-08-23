@@ -3,9 +3,11 @@ package com.Codexa.Codexa.service;
 import com.Codexa.Codexa.dto.CreateProblemRequest;
 import com.Codexa.Codexa.entity.Problem;
 import com.Codexa.Codexa.repository.ProblemRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class ProblemService {
@@ -30,12 +32,73 @@ public class ProblemService {
         return problemRepository.save(problem);
     }
 
-    public List<Problem> getAllProblems() {
-        return problemRepository.findAll();
+    public Page<Problem> getAllProblems(
+            int page,
+            int size,
+            String sortBy,
+            String direction) {
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable =
+                PageRequest.of(page, size, sort);
+
+        return problemRepository.findAll(pageable);
+    }
+
+    public Page<Problem> searchProblems(
+            String search,
+            String difficulty,
+            int page,
+            int size,
+            String sortBy,
+            String direction) {
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable =
+                PageRequest.of(page, size, sort);
+
+        if (search != null && !search.isBlank()
+                && difficulty != null && !difficulty.isBlank()) {
+
+            return problemRepository
+                    .findByTitleContainingIgnoreCaseAndDifficultyIgnoreCase(
+                            search,
+                            difficulty,
+                            pageable
+                    );
+        }
+
+        if (search != null && !search.isBlank()) {
+
+            return problemRepository
+                    .findByTitleContainingIgnoreCase(
+                            search,
+                            pageable
+                    );
+        }
+
+        if (difficulty != null && !difficulty.isBlank()) {
+
+            return problemRepository
+                    .findByDifficultyIgnoreCase(
+                            difficulty,
+                            pageable
+                    );
+        }
+
+        return problemRepository.findAll(pageable);
     }
 
     public Problem getProblemById(Long id) {
+
         return problemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Problem not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Problem not found"));
     }
 }
