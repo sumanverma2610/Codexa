@@ -101,4 +101,31 @@ public class ProblemService {
                 .orElseThrow(() ->
                         new RuntimeException("Problem not found"));
     }
+
+    public Problem updateProblem(
+            Long id,
+            CreateProblemRequest request) {
+
+        Problem problem = problemRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Problem not found"));
+
+        problem.setTitle(request.getTitle());
+        problem.setDescription(request.getDescription());
+        problem.setDifficulty(request.getDifficulty());
+        problem.setConstraints(request.getConstraints());
+        problem.setInputFormat(request.getInputFormat());
+        problem.setOutputFormat(request.getOutputFormat());
+
+        return problemRepository.save(problem);
+    }
+
+    public void deleteProblem(Long id) {
+
+        Problem problem = problemRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Problem not found"));
+
+        problemRepository.delete(problem);
+    }
 }

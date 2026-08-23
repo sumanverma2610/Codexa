@@ -6,6 +6,7 @@ import com.Codexa.Codexa.service.ProblemService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,7 +19,8 @@ public class ProblemController {
         this.problemService = problemService;
     }
 
-    // Create problem
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Problem> createProblem(
             @Valid @RequestBody CreateProblemRequest request) {
@@ -28,7 +30,6 @@ public class ProblemController {
         );
     }
 
-    // Get problems with pagination, search, filter and sorting
     @GetMapping
     public ResponseEntity<Page<Problem>> getAllProblems(
 
@@ -62,13 +63,36 @@ public class ProblemController {
         );
     }
 
-    // Get problem by ID
     @GetMapping("/{id}")
     public ResponseEntity<Problem> getProblemById(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 problemService.getProblemById(id)
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<Problem> updateProblem(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateProblemRequest request) {
+
+        return ResponseEntity.ok(
+                problemService.updateProblem(id, request)
+        );
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteProblem(
+            @PathVariable Long id) {
+
+        problemService.deleteProblem(id);
+
+        return ResponseEntity.ok(
+                "Problem deleted successfully"
         );
     }
 }
