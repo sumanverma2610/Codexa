@@ -5,6 +5,8 @@ import com.Codexa.Codexa.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -38,11 +40,34 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+
+                        // Public APIs
                         .requestMatchers(
                                 "/api/hello",
                                 "/api/auth/**",
                                 "/api/code/**"
                         ).permitAll()
+
+                        // Anyone can view problems
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/problems",
+                                "/api/problems/**"
+                        ).permitAll()
+
+                        // Only ADMIN can create problems
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/problems"
+                        ).hasRole("ADMIN")
+
+                        // Only ADMIN can manage test cases
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/test-cases/**"
+                        ).hasRole("ADMIN")
+
+                        // Everything else requires login
                         .anyRequest().authenticated()
                 )
 

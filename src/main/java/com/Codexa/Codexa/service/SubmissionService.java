@@ -46,16 +46,14 @@ public class SubmissionService {
             String email) {
 
         // 1. Find problem
-        Problem problem = problemRepository
-                .findById(request.getProblemId())
+        Problem problem = problemRepository.findById(request.getProblemId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Problem not found"
                         ));
 
         // 2. Find user
-        User user = userRepository
-                .findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "User not found"
@@ -69,20 +67,13 @@ public class SubmissionService {
         submission.setProblem(problem);
         submission.setUser(user);
 
-        // 4. Initially PENDING
-        submission.setStatus(
-                SubmissionStatus.PENDING
-        );
-
-        // Save first
-        submissionRepository.save(submission);
-
-        // 5. Change status to RUNNING
+        // 4. Initially running
         submission.setStatus(
                 SubmissionStatus.RUNNING
         );
 
-        submissionRepository.save(submission);
+        // 5. Save submission
+        submission = submissionRepository.save(submission);
 
         // 6. Get all test cases
         List<TestCase> testCases =
@@ -90,7 +81,7 @@ public class SubmissionService {
                         problem.getId()
                 );
 
-        // If problem has no test cases
+        // 7. Check whether test cases exist
         if (testCases.isEmpty()) {
 
             submission.setStatus(
@@ -101,14 +92,10 @@ public class SubmissionService {
                     "No test cases found for this problem"
             );
 
-            return submissionRepository.save(
-                    submission
-            );
+            return submissionRepository.save(submission);
         }
 
-        String finalResult = "";
-
-        // 7. Run code against every test case
+        // 8. Run code against every test case
         for (TestCase testCase : testCases) {
 
             String executionResult =
@@ -117,7 +104,7 @@ public class SubmissionService {
                             testCase.getInput()
                     );
 
-            // 8. Compilation error
+            // Compilation error
             if (executionResult.startsWith(
                     "Compilation Error:"
             )) {
@@ -126,12 +113,16 @@ public class SubmissionService {
                         SubmissionStatus.COMPILATION_ERROR
                 );
 
-                finalResult = executionResult;
+                submission.setResult(
+                        executionResult
+                );
 
-                break;
+                return submissionRepository.save(
+                        submission
+                );
             }
 
-            // 9. Runtime error
+            // Runtime error
             if (executionResult.startsWith(
                     "Runtime Error:"
             )) {
@@ -140,12 +131,16 @@ public class SubmissionService {
                         SubmissionStatus.RUNTIME_ERROR
                 );
 
-                finalResult = executionResult;
+                submission.setResult(
+                        executionResult
+                );
 
-                break;
+                return submissionRepository.save(
+                        submission
+                );
             }
 
-            // 10. Time limit exceeded
+            // Time limit exceeded
             if (executionResult.equals(
                     "Time Limit Exceeded"
             )) {
@@ -154,20 +149,22 @@ public class SubmissionService {
                         SubmissionStatus.TIME_LIMIT_EXCEEDED
                 );
 
-                finalResult = executionResult;
+                submission.setResult(
+                        executionResult
+                );
 
-                break;
+                return submissionRepository.save(
+                        submission
+                );
             }
 
-            // 11. Actual output
+            // 9. Compare actual output with expected output
             String actualOutput =
                     executionResult.trim();
 
-            // 12. Expected output
             String expectedOutput =
                     testCase.getExpectedOutput().trim();
 
-            // 13. Compare output
             if (!actualOutput.equals(
                     expectedOutput
             )) {
@@ -176,36 +173,26 @@ public class SubmissionService {
                         SubmissionStatus.WRONG_ANSWER
                 );
 
-                finalResult =
-                        "Wrong Answer\n" +
-                                "Expected: " +
-                                expectedOutput +
-                                "\nActual: " +
-                                actualOutput;
+                submission.setResult(
+                        "Expected: "
+                                + expectedOutput
+                                + "\nActual: "
+                                + actualOutput
+                );
 
-                break;
+                return submissionRepository.save(
+                        submission
+                );
             }
-
-            // This test case passed
-            finalResult =
-                    "Test case passed";
         }
 
-        // 14. If every test case passed
-        if (submission.getStatus() ==
-                SubmissionStatus.RUNNING) {
+        // 10. All test cases passed
+        submission.setStatus(
+                SubmissionStatus.ACCEPTED
+        );
 
-            submission.setStatus(
-                    SubmissionStatus.ACCEPTED
-            );
-
-            finalResult =
-                    "All test cases passed";
-        }
-
-        // 15. Save result
         submission.setResult(
-                finalResult
+                "All test cases passed"
         );
 
         return submissionRepository.save(
@@ -216,12 +203,12 @@ public class SubmissionService {
     public List<SubmissionResponse> getMySubmissions(
             String email) {
 
-        User user = userRepository
-                .findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found"
-                        ));
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found"
+                                ));
 
         List<Submission> submissions =
                 submissionRepository.findByUser(user);

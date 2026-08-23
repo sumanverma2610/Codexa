@@ -22,17 +22,48 @@ public class SubmissionController {
     }
 
     @PostMapping
-    public ResponseEntity<Submission> createSubmission(
+    public ResponseEntity<SubmissionResponse> createSubmission(
             @Valid @RequestBody CreateSubmissionRequest request,
             Authentication authentication) {
 
         String email = authentication.getName();
 
         Submission submission =
-                submissionService.createSubmission(request, email);
+                submissionService.createSubmission(
+                        request,
+                        email
+                );
 
-        return ResponseEntity.ok(submission);
+        SubmissionResponse response =
+                new SubmissionResponse();
+
+        response.setId(
+                submission.getId()
+        );
+
+        response.setProblemId(
+                submission.getProblem().getId()
+        );
+
+        response.setLanguage(
+                submission.getLanguage()
+        );
+
+        response.setStatus(
+                submission.getStatus()
+        );
+
+        response.setResult(
+                submission.getResult()
+        );
+
+        response.setCode(
+                submission.getCode()
+        );
+
+        return ResponseEntity.ok(response);
     }
+
     @GetMapping("/my")
     public ResponseEntity<List<SubmissionResponse>> getMySubmissions(
             Authentication authentication) {
@@ -43,6 +74,7 @@ public class SubmissionController {
                 submissionService.getMySubmissions(email)
         );
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<SubmissionResponse> getSubmissionById(
             @PathVariable Long id,
@@ -51,7 +83,10 @@ public class SubmissionController {
         String email = authentication.getName();
 
         return ResponseEntity.ok(
-                submissionService.getSubmissionById(id, email)
+                submissionService.getSubmissionById(
+                        id,
+                        email
+                )
         );
     }
 }
