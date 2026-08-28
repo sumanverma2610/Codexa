@@ -1,5 +1,6 @@
 package com.Codexa.Codexa.executor;
 
+import com.Codexa.Codexa.entity.SubmissionStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -18,7 +19,7 @@ public class CodeExecutorService {
 
     private static final int MAX_OUTPUT_SIZE = 1024 * 1024; // 1 MB
 
-    public String execute(String code, String input) {
+    public ExecutionResult execute(String code, String input) {
 
         // Create a unique folder for every execution
         Path executionDirectory =
@@ -29,17 +30,13 @@ public class CodeExecutorService {
 
         try {
 
-            // ==========================================
             // 1. Create execution directory
-            // ==========================================
 
             Files.createDirectories(
                     executionDirectory
             );
 
-            // ==========================================
             // 2. Create Main.java
-            // ==========================================
 
             Path javaFile =
                     executionDirectory.resolve("Main.java");
@@ -49,9 +46,7 @@ public class CodeExecutorService {
                     code
             );
 
-            // ==========================================
             // 3. Compile Java code
-            // ==========================================
 
             Process compileProcess =
                     new ProcessBuilder(
@@ -82,31 +77,32 @@ public class CodeExecutorService {
                         .append(line)
                         .append("\n");
 
-                // Prevent huge compilation output
+                // Compilation output limit
                 if (compileOutput.length() > MAX_OUTPUT_SIZE) {
 
                     compileProcess.destroyForcibly();
 
-                    return "Compilation Output Limit Exceeded";
+                    return new ExecutionResult(
+                            SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
+                            "Compilation output exceeded 1 MB"
+                    );
                 }
             }
 
             int compileExitCode =
                     compileProcess.waitFor();
 
-            // ==========================================
             // 4. Compilation error
-            // ==========================================
 
             if (compileExitCode != 0) {
 
-                return "Compilation Error:\n"
-                        + compileOutput;
+                return new ExecutionResult(
+                        SubmissionStatus.COMPILATION_ERROR,
+                        compileOutput.toString()
+                );
             }
 
-            // ==========================================
             // 5. Run Java program
-            // ==========================================
 
             Process runProcess =
                     new ProcessBuilder(
@@ -119,9 +115,7 @@ public class CodeExecutorService {
                             .redirectErrorStream(true)
                             .start();
 
-            // ==========================================
             // 6. Send input
-            // ==========================================
 
             if (input != null) {
 
@@ -138,9 +132,7 @@ public class CodeExecutorService {
                 outputStream.close();
             }
 
-            // ==========================================
             // 7. Maximum execution time = 5 seconds
-            // ==========================================
 
             boolean finished =
                     runProcess.waitFor(
@@ -148,20 +140,19 @@ public class CodeExecutorService {
                             TimeUnit.SECONDS
                     );
 
-            // ==========================================
             // 8. Time limit exceeded
-            // ==========================================
 
             if (!finished) {
 
                 runProcess.destroyForcibly();
 
-                return "Time Limit Exceeded";
+                return new ExecutionResult(
+                        SubmissionStatus.TIME_LIMIT_EXCEEDED,
+                        "Program exceeded 5 seconds"
+                );
             }
 
-            // ==========================================
             // 9. Read program output
-            // ==========================================
 
             BufferedReader runReader =
                     new BufferedReader(
@@ -179,47 +170,49 @@ public class CodeExecutorService {
                         .append(line)
                         .append("\n");
 
-                // ======================================
                 // Output limit = 1 MB
-                // ======================================
 
                 if (output.length() > MAX_OUTPUT_SIZE) {
 
                     runProcess.destroyForcibly();
 
-                    return "Output Limit Exceeded";
+                    return new ExecutionResult(
+                            SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
+                            "Program output exceeded 1 MB"
+                    );
                 }
             }
 
-            // ==========================================
             // 10. Runtime error
-            // ==========================================
 
             int runExitCode =
                     runProcess.exitValue();
 
             if (runExitCode != 0) {
 
-                return "Runtime Error:\n"
-                        + output;
+                return new ExecutionResult(
+                        SubmissionStatus.RUNTIME_ERROR,
+                        output.toString()
+                );
             }
 
-            // ==========================================
             // 11. Successful execution
-            // ==========================================
 
-            return output.toString();
+            return new ExecutionResult(
+                    SubmissionStatus.ACCEPTED,
+                    output.toString()
+            );
 
         } catch (Exception e) {
 
-            return "Execution Error: "
-                    + e.getMessage();
+            return new ExecutionResult(
+                    SubmissionStatus.EXECUTION_ERROR,
+                    e.getMessage()
+            );
 
         } finally {
 
-            // ==========================================
             // 12. Delete temporary files
-            // ==========================================
 
             deleteDirectory(
                     executionDirectory
@@ -227,9 +220,7 @@ public class CodeExecutorService {
         }
     }
 
-    // ==============================================
     // Delete execution directory
-    // ==============================================
 
     private void deleteDirectory(
             Path directory) {

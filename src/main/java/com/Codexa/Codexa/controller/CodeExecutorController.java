@@ -1,6 +1,8 @@
 package com.Codexa.Codexa.controller;
 
 import com.Codexa.Codexa.executor.CodeExecutorService;
+import com.Codexa.Codexa.executor.ExecutionResult;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,13 +18,16 @@ public class CodeExecutorController {
     }
 
     @PostMapping("/execute")
-    public String execute(
+    public ResponseEntity<ExecutionResult> execute(
             @RequestParam String input,
             @RequestBody String code) {
 
-        return codeExecutorService.execute(
-                code,
-                input
-        );
+        ExecutionResult result =
+                codeExecutorService.execute(
+                        code,
+                        input
+                );
+
+        return ResponseEntity.ok(result);
     }
 }

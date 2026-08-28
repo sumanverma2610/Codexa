@@ -10,6 +10,7 @@ import com.Codexa.Codexa.entity.User;
 import com.Codexa.Codexa.exception.ForbiddenException;
 import com.Codexa.Codexa.exception.ResourceNotFoundException;
 import com.Codexa.Codexa.executor.CodeExecutorService;
+import com.Codexa.Codexa.executor.ExecutionResult;
 import com.Codexa.Codexa.repository.ProblemRepository;
 import com.Codexa.Codexa.repository.SubmissionRepository;
 import com.Codexa.Codexa.repository.TestCaseRepository;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -49,26 +51,41 @@ public class SubmissionService {
             String email) {
 
         // 1. Find problem
-        Problem problem = problemRepository.findById(request.getProblemId())
-                .orElseThrow(() ->
+        Problem problem =
+                problemRepository.findById(
+                        request.getProblemId()
+                ).orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Problem not found"
                         ));
 
         // 2. Find user
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found"
-                        ));
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found"
+                                ));
 
         // 3. Create submission
-        Submission submission = new Submission();
+        Submission submission =
+                new Submission();
 
-        submission.setCode(request.getCode());
-        submission.setLanguage(request.getLanguage());
-        submission.setProblem(problem);
-        submission.setUser(user);
+        submission.setCode(
+                request.getCode()
+        );
+
+        submission.setLanguage(
+                request.getLanguage()
+        );
+
+        submission.setProblem(
+                problem
+        );
+
+        submission.setUser(
+                user
+        );
 
         // 4. Initially running
         submission.setStatus(
@@ -76,7 +93,10 @@ public class SubmissionService {
         );
 
         // 5. Save submission
-        submission = submissionRepository.save(submission);
+        submission =
+                submissionRepository.save(
+                        submission
+                );
 
         // 6. Get all test cases
         List<TestCase> testCases =
@@ -84,7 +104,7 @@ public class SubmissionService {
                         problem.getId()
                 );
 
-        // 7. Check whether test cases exist
+        // 7. Check test cases
         if (testCases.isEmpty()) {
 
             submission.setStatus(
@@ -95,29 +115,33 @@ public class SubmissionService {
                     "No test cases found for this problem"
             );
 
-            return submissionRepository.save(submission);
+            return submissionRepository.save(
+                    submission
+            );
         }
 
-        // 8. Run code against every test case
+        // 8. Run every test case
         for (TestCase testCase : testCases) {
 
-            String executionResult =
+            ExecutionResult result =
                     codeExecutorService.execute(
                             submission.getCode(),
                             testCase.getInput()
                     );
 
-            // Compilation error
-            if (executionResult.startsWith(
-                    "Compilation Error:"
-            )) {
+            // ==========================================
+            // Execution failed
+            // ==========================================
+
+            if (result.getStatus() !=
+                    SubmissionStatus.ACCEPTED) {
 
                 submission.setStatus(
-                        SubmissionStatus.COMPILATION_ERROR
+                        result.getStatus()
                 );
 
                 submission.setResult(
-                        executionResult
+                        result.getOutput()
                 );
 
                 return submissionRepository.save(
@@ -125,48 +149,17 @@ public class SubmissionService {
                 );
             }
 
-            // Runtime error
-            if (executionResult.startsWith(
-                    "Runtime Error:"
-            )) {
+            // ==========================================
+            // Compare output
+            // ==========================================
 
-                submission.setStatus(
-                        SubmissionStatus.RUNTIME_ERROR
-                );
-
-                submission.setResult(
-                        executionResult
-                );
-
-                return submissionRepository.save(
-                        submission
-                );
-            }
-
-            // Time limit exceeded
-            if (executionResult.equals(
-                    "Time Limit Exceeded"
-            )) {
-
-                submission.setStatus(
-                        SubmissionStatus.TIME_LIMIT_EXCEEDED
-                );
-
-                submission.setResult(
-                        executionResult
-                );
-
-                return submissionRepository.save(
-                        submission
-                );
-            }
-
-            // 9. Compare actual output with expected output
             String actualOutput =
-                    executionResult.trim();
+                    result.getOutput().trim();
 
             String expectedOutput =
-                    testCase.getExpectedOutput().trim();
+                    testCase
+                            .getExpectedOutput()
+                            .trim();
 
             if (!actualOutput.equals(
                     expectedOutput
@@ -189,7 +182,10 @@ public class SubmissionService {
             }
         }
 
-        // 10. All test cases passed
+        // ==========================================
+        // All test cases passed
+        // ==========================================
+
         submission.setStatus(
                 SubmissionStatus.ACCEPTED
         );
@@ -202,6 +198,10 @@ public class SubmissionService {
                 submission
         );
     }
+
+    // ==============================================
+    // Get my submissions
+    // ==============================================
 
     public Page<SubmissionResponse> getMySubmissions(
             String email,
@@ -232,6 +232,10 @@ public class SubmissionService {
                 this::convertToResponse
         );
     }
+
+    // ==============================================
+    // Get submission by ID
+    // ==============================================
 
     public SubmissionResponse getSubmissionById(
             Long id,
@@ -265,6 +269,10 @@ public class SubmissionService {
                 submission
         );
     }
+
+    // ==============================================
+    // Convert entity to response
+    // ==============================================
 
     private SubmissionResponse convertToResponse(
             Submission submission) {
