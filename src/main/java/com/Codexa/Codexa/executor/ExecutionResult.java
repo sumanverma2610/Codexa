@@ -1,14 +1,19 @@
 package com.Codexa.Codexa.executor;
 
 import com.Codexa.Codexa.entity.SubmissionStatus;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class ExecutionResult {
 
-    private SubmissionStatus status;
+    private final SubmissionStatus status;
+    private final String output;
 
-    private String output;
+    public ExecutionResult(
+            SubmissionStatus status,
+            String output) {
+
+        this.status = status;
+        this.output = output;
+    }
 }

@@ -2,7 +2,9 @@ package com.Codexa.Codexa.controller;
 
 import com.Codexa.Codexa.dto.CreateSubmissionRequest;
 import com.Codexa.Codexa.dto.SubmissionResponse;
+import com.Codexa.Codexa.dto.SubmissionStatsResponse;
 import com.Codexa.Codexa.entity.Submission;
+import com.Codexa.Codexa.entity.SubmissionStatus;
 import com.Codexa.Codexa.service.SubmissionService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -67,8 +69,16 @@ public class SubmissionController {
 
     @GetMapping("/my")
     public ResponseEntity<Page<SubmissionResponse>> getMySubmissions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            int size,
+
+            @RequestParam(required = false)
+            SubmissionStatus status,
+
             Authentication authentication) {
 
         String email = authentication.getName();
@@ -77,7 +87,8 @@ public class SubmissionController {
                 submissionService.getMySubmissions(
                         email,
                         page,
-                        size
+                        size,
+                        status
                 )
         );
     }
@@ -94,6 +105,16 @@ public class SubmissionController {
                         id,
                         email
                 )
+        );
+    }
+    @GetMapping("/stats")
+    public ResponseEntity<SubmissionStatsResponse> getSubmissionStats(
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        return ResponseEntity.ok(
+                submissionService.getSubmissionStats(email)
         );
     }
 }

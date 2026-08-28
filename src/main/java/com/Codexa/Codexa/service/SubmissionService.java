@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import com.Codexa.Codexa.dto.SubmissionStatsResponse;
 
 import java.util.List;
 
@@ -206,7 +207,8 @@ public class SubmissionService {
     public Page<SubmissionResponse> getMySubmissions(
             String email,
             int page,
-            int size) {
+            int size,
+            SubmissionStatus status) {
 
         User user =
                 userRepository.findByEmail(email)
@@ -222,17 +224,30 @@ public class SubmissionService {
                         Sort.by("id").descending()
                 );
 
-        Page<Submission> submissions =
-                submissionRepository.findByUser(
-                        user,
-                        pageable
-                );
+        Page<Submission> submissions;
+
+        if (status != null) {
+
+            submissions =
+                    submissionRepository.findByUserAndStatus(
+                            user,
+                            status,
+                            pageable
+                    );
+
+        } else {
+
+            submissions =
+                    submissionRepository.findByUser(
+                            user,
+                            pageable
+                    );
+        }
 
         return submissions.map(
                 this::convertToResponse
         );
     }
-
     // ==============================================
     // Get submission by ID
     // ==============================================
@@ -302,6 +317,67 @@ public class SubmissionService {
 
         response.setCode(
                 submission.getCode()
+        );
+
+        return response;
+    }
+    public SubmissionStatsResponse getSubmissionStats(
+            String email) {
+
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found"
+                                ));
+
+        SubmissionStatsResponse response =
+                new SubmissionStatsResponse();
+
+        response.setTotal(
+                submissionRepository.countByUser(user)
+        );
+
+        response.setAccepted(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.ACCEPTED
+                )
+        );
+
+        response.setWrongAnswer(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.WRONG_ANSWER
+                )
+        );
+
+        response.setCompilationError(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.COMPILATION_ERROR
+                )
+        );
+
+        response.setRuntimeError(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.RUNTIME_ERROR
+                )
+        );
+
+        response.setTimeLimitExceeded(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.TIME_LIMIT_EXCEEDED
+                )
+        );
+
+        response.setOutputLimitExceeded(
+                submissionRepository.countByUserAndStatus(
+                        user,
+                        SubmissionStatus.OUTPUT_LIMIT_EXCEEDED
+                )
         );
 
         return response;

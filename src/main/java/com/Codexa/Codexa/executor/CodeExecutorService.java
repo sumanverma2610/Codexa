@@ -21,7 +21,6 @@ public class CodeExecutorService {
 
     public ExecutionResult execute(String code, String input) {
 
-        // Create a unique folder for every execution
         Path executionDirectory =
                 Paths.get(
                         "execution",
@@ -77,8 +76,8 @@ public class CodeExecutorService {
                         .append(line)
                         .append("\n");
 
-                // Compilation output limit
-                if (compileOutput.length() > MAX_OUTPUT_SIZE) {
+                if (compileOutput.length()
+                        > MAX_OUTPUT_SIZE) {
 
                     compileProcess.destroyForcibly();
 
@@ -107,6 +106,9 @@ public class CodeExecutorService {
             Process runProcess =
                     new ProcessBuilder(
                             "java",
+                            "-Xmx128m",
+                            "-Xss1m",
+                            "-Djava.security.manager=disallow",
                             "Main"
                     )
                             .directory(
@@ -132,7 +134,59 @@ public class CodeExecutorService {
                 outputStream.close();
             }
 
-            // 7. Maximum execution time = 5 seconds
+            // 7. Read output while program is running
+
+            StringBuilder output =
+                    new StringBuilder();
+
+            final boolean[] outputLimitExceeded =
+                    {false};
+
+            Thread outputReader =
+                    new Thread(() -> {
+
+                        try {
+
+                            BufferedReader reader =
+                                    new BufferedReader(
+                                            new InputStreamReader(
+                                                    runProcess
+                                                            .getInputStream()
+                                            )
+                                    );
+
+                            String outputLine;
+
+                            while ((outputLine =
+                                    reader.readLine()) != null) {
+
+                                synchronized (output) {
+
+                                    output.append(
+                                            outputLine
+                                    ).append("\n");
+
+                                    if (output.length()
+                                            > MAX_OUTPUT_SIZE) {
+
+                                        outputLimitExceeded[0] =
+                                                true;
+
+                                        runProcess
+                                                .destroyForcibly();
+
+                                        break;
+                                    }
+                                }
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+                    });
+
+            outputReader.start();
+
+            // 8. Maximum execution time = 5 seconds
 
             boolean finished =
                     runProcess.waitFor(
@@ -140,11 +194,13 @@ public class CodeExecutorService {
                             TimeUnit.SECONDS
                     );
 
-            // 8. Time limit exceeded
+            // 9. Time limit exceeded
 
             if (!finished) {
 
                 runProcess.destroyForcibly();
+
+                outputReader.join(1000);
 
                 return new ExecutionResult(
                         SubmissionStatus.TIME_LIMIT_EXCEEDED,
@@ -152,38 +208,21 @@ public class CodeExecutorService {
                 );
             }
 
-            // 9. Read program output
+            // Wait for output reader
 
-            BufferedReader runReader =
-                    new BufferedReader(
-                            new InputStreamReader(
-                                    runProcess.getInputStream()
-                            )
-                    );
+            outputReader.join(1000);
 
-            StringBuilder output =
-                    new StringBuilder();
+            // 10. Output limit exceeded
 
-            while ((line = runReader.readLine()) != null) {
+            if (outputLimitExceeded[0]) {
 
-                output
-                        .append(line)
-                        .append("\n");
-
-                // Output limit = 1 MB
-
-                if (output.length() > MAX_OUTPUT_SIZE) {
-
-                    runProcess.destroyForcibly();
-
-                    return new ExecutionResult(
-                            SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
-                            "Program output exceeded 1 MB"
-                    );
-                }
+                return new ExecutionResult(
+                        SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
+                        "Program output exceeded 1 MB"
+                );
             }
 
-            // 10. Runtime error
+            // 11. Runtime error
 
             int runExitCode =
                     runProcess.exitValue();
@@ -196,7 +235,7 @@ public class CodeExecutorService {
                 );
             }
 
-            // 11. Successful execution
+            // 12. Successful execution
 
             return new ExecutionResult(
                     SubmissionStatus.ACCEPTED,
@@ -212,15 +251,13 @@ public class CodeExecutorService {
 
         } finally {
 
-            // 12. Delete temporary files
+            // 13. Delete temporary files
 
             deleteDirectory(
                     executionDirectory
             );
         }
     }
-
-    // Delete execution directory
 
     private void deleteDirectory(
             Path directory) {
@@ -243,15 +280,11 @@ public class CodeExecutorService {
                                     path
                             );
 
-                        } catch (Exception e) {
-
-                            // Ignore cleanup errors
+                        } catch (Exception ignored) {
                         }
                     });
 
-        } catch (Exception e) {
-
-            // Ignore cleanup errors
+        } catch (Exception ignored) {
         }
     }
 }
