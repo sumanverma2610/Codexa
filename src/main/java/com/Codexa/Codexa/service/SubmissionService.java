@@ -49,12 +49,9 @@ public class SubmissionService {
     }
 
     // CREATE SUBMISSION
-
     public Submission createSubmission(
             CreateSubmissionRequest request,
             String email) {
-
-        // 1. Find problem
 
         Problem problem =
                 problemRepository.findById(
@@ -64,16 +61,12 @@ public class SubmissionService {
                                 "Problem not found"
                         ));
 
-        // 2. Find user
-
         User user =
                 userRepository.findByEmail(email)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "User not found"
                                 ));
-
-        // 3. Create submission
 
         Submission submission =
                 new Submission();
@@ -94,27 +87,19 @@ public class SubmissionService {
                 user
         );
 
-        // 4. Initially RUNNING
-
         submission.setStatus(
                 SubmissionStatus.RUNNING
         );
-
-        // 5. Save submission
 
         Submission savedSubmission =
                 submissionRepository.save(
                         submission
                 );
 
-        // 6. Get test cases
-
         List<TestCase> testCases =
                 testCaseRepository.findByProblemId(
                         problem.getId()
                 );
-
-        // 7. No test cases
 
         if (testCases.isEmpty()) {
 
@@ -131,8 +116,6 @@ public class SubmissionService {
             );
         }
 
-        // 8. Run every test case
-
         for (TestCase testCase : testCases) {
 
             ExecutionResult result =
@@ -141,8 +124,16 @@ public class SubmissionService {
                             testCase.getInput()
                     );
 
-            // Execution failed
+            // Save execution details
+            savedSubmission.setExecutionTime(
+                    result.getExecutionTime()
+            );
 
+            savedSubmission.setMemoryUsed(
+                    result.getMemoryUsed()
+            );
+
+            // Execution failed
             if (result.getStatus() !=
                     SubmissionStatus.ACCEPTED) {
 
@@ -158,8 +149,6 @@ public class SubmissionService {
                         savedSubmission
                 );
             }
-
-            // Compare output
 
             String actualOutput =
                     result.getOutput().trim();
@@ -190,10 +179,6 @@ public class SubmissionService {
             }
         }
 
-        // =================================================
-        // All test cases passed
-        // =================================================
-
         savedSubmission.setStatus(
                 SubmissionStatus.ACCEPTED
         );
@@ -208,7 +193,6 @@ public class SubmissionService {
     }
 
     // GET MY SUBMISSIONS
-
     public Page<SubmissionResponse> getMySubmissions(
             String email,
             int page,
@@ -255,7 +239,6 @@ public class SubmissionService {
     }
 
     // GET SUBMISSION BY ID
-
     public SubmissionResponse getSubmissionById(
             Long id,
             String email) {
@@ -274,8 +257,6 @@ public class SubmissionService {
                                         "User not found"
                                 ));
 
-        // User can only access his own submission
-
         if (!submission.getUser()
                 .getId()
                 .equals(user.getId())) {
@@ -291,7 +272,6 @@ public class SubmissionService {
     }
 
     // CONVERT ENTITY TO RESPONSE
-
     private SubmissionResponse convertToResponse(
             Submission submission) {
 
@@ -322,11 +302,18 @@ public class SubmissionService {
                 submission.getCode()
         );
 
+        response.setExecutionTime(
+                submission.getExecutionTime()
+        );
+
+        response.setMemoryUsed(
+                submission.getMemoryUsed()
+        );
+
         return response;
     }
 
     // SUBMISSION STATISTICS
-
     public SubmissionStatsResponse getSubmissionStats(
             String email) {
 
@@ -340,15 +327,9 @@ public class SubmissionService {
         SubmissionStatsResponse response =
                 new SubmissionStatsResponse();
 
-        // Total
-
         response.setTotal(
-                submissionRepository.countByUser(
-                        user
-                )
+                submissionRepository.countByUser(user)
         );
-
-        // Accepted
 
         response.setAccepted(
                 submissionRepository.countByUserAndStatus(
@@ -357,16 +338,12 @@ public class SubmissionService {
                 )
         );
 
-        // Wrong Answer
-
         response.setWrongAnswer(
                 submissionRepository.countByUserAndStatus(
                         user,
                         SubmissionStatus.WRONG_ANSWER
                 )
         );
-
-        // Compilation Error
 
         response.setCompilationError(
                 submissionRepository.countByUserAndStatus(
@@ -375,8 +352,6 @@ public class SubmissionService {
                 )
         );
 
-        // Runtime Error
-
         response.setRuntimeError(
                 submissionRepository.countByUserAndStatus(
                         user,
@@ -384,16 +359,12 @@ public class SubmissionService {
                 )
         );
 
-        // Time Limit Exceeded
-
         response.setTimeLimitExceeded(
                 submissionRepository.countByUserAndStatus(
                         user,
                         SubmissionStatus.TIME_LIMIT_EXCEEDED
                 )
         );
-
-        // Output Limit Exceeded
 
         response.setOutputLimitExceeded(
                 submissionRepository.countByUserAndStatus(
@@ -406,7 +377,6 @@ public class SubmissionService {
     }
 
     // ADMIN - GET ALL SUBMISSIONS
-
     public Page<SubmissionResponse> getAllSubmissions(
             int page,
             int size,

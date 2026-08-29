@@ -17,7 +17,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class CodeExecutorService {
 
-    private static final int MAX_OUTPUT_SIZE = 1024 * 1024; // 1 MB
+    private static final int MAX_OUTPUT_SIZE = 1024 * 1024;
+    private static final long TIME_LIMIT = 5;
 
     public ExecutionResult execute(String code, String input) {
 
@@ -28,14 +29,7 @@ public class CodeExecutorService {
                 );
 
         try {
-
-            // 1. Create execution directory
-
-            Files.createDirectories(
-                    executionDirectory
-            );
-
-            // 2. Create Main.java
+            Files.createDirectories(executionDirectory);
 
             Path javaFile =
                     executionDirectory.resolve("Main.java");
@@ -44,9 +38,9 @@ public class CodeExecutorService {
                     javaFile,
                     code
             );
+            
 
-            // 3. Compile Java code
-
+            // Compile
             Process compileProcess =
                     new ProcessBuilder(
                             "javac",
@@ -58,50 +52,55 @@ public class CodeExecutorService {
                             .redirectErrorStream(true)
                             .start();
 
-            BufferedReader compileReader =
-                    new BufferedReader(
-                            new InputStreamReader(
-                                    compileProcess.getInputStream()
-                            )
-                    );
-
             StringBuilder compileOutput =
                     new StringBuilder();
 
-            String line;
+            try (BufferedReader reader =
+                         new BufferedReader(
+                                 new InputStreamReader(
+                                         compileProcess.getInputStream()
+                                 )
+                         )) {
 
-            while ((line = compileReader.readLine()) != null) {
+                String line;
 
-                compileOutput
-                        .append(line)
-                        .append("\n");
+                while ((line = reader.readLine()) != null) {
 
-                if (compileOutput.length()
-                        > MAX_OUTPUT_SIZE) {
+                    compileOutput
+                            .append(line)
+                            .append("\n");
 
-                    compileProcess.destroyForcibly();
+                    if (compileOutput.length()
+                            > MAX_OUTPUT_SIZE) {
 
-                    return new ExecutionResult(
-                            SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
-                            "Compilation output exceeded 1 MB"
-                    );
+                        compileProcess.destroyForcibly();
+
+                        return new ExecutionResult(
+                                SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
+                                "Compilation output exceeded 1 MB",
+                                0,
+                                0
+                        );
+                    }
                 }
             }
 
             int compileExitCode =
                     compileProcess.waitFor();
 
-            // 4. Compilation error
-
             if (compileExitCode != 0) {
 
                 return new ExecutionResult(
                         SubmissionStatus.COMPILATION_ERROR,
-                        compileOutput.toString()
+                        compileOutput.toString(),
+                        0,
+                        0
                 );
             }
 
-            // 5. Run Java program
+            // Run
+            long startTime =
+                    System.nanoTime();
 
             Process runProcess =
                     new ProcessBuilder(
@@ -117,24 +116,20 @@ public class CodeExecutorService {
                             .redirectErrorStream(true)
                             .start();
 
-            // 6. Send input
-
             if (input != null) {
 
-                OutputStream outputStream =
-                        runProcess.getOutputStream();
+                try (OutputStream outputStream =
+                             runProcess.getOutputStream()) {
 
-                outputStream.write(
-                        input.getBytes(
-                                StandardCharsets.UTF_8
-                        )
-                );
+                    outputStream.write(
+                            input.getBytes(
+                                    StandardCharsets.UTF_8
+                            )
+                    );
 
-                outputStream.flush();
-                outputStream.close();
+                    outputStream.flush();
+                }
             }
-
-            // 7. Read output while program is running
 
             StringBuilder output =
                     new StringBuilder();
@@ -142,6 +137,7 @@ public class CodeExecutorService {
             final boolean[] outputLimitExceeded =
                     {false};
 
+            // Read output
             Thread outputReader =
                     new Thread(() -> {
 
@@ -155,16 +151,15 @@ public class CodeExecutorService {
                                             )
                                     );
 
-                            String outputLine;
+                            String line;
 
-                            while ((outputLine =
+                            while ((line =
                                     reader.readLine()) != null) {
 
                                 synchronized (output) {
 
-                                    output.append(
-                                            outputLine
-                                    ).append("\n");
+                                    output.append(line)
+                                            .append("\n");
 
                                     if (output.length()
                                             > MAX_OUTPUT_SIZE) {
@@ -186,15 +181,55 @@ public class CodeExecutorService {
 
             outputReader.start();
 
-            // 8. Maximum execution time = 5 seconds
+            // Monitor memory
+            final long[] peakMemory =
+                    {0};
+
+            Thread memoryMonitor =
+                    new Thread(() -> {
+
+                        while (runProcess.isAlive()) {
+
+                            long memory =
+                                    getProcessMemory(
+                                            runProcess.pid()
+                                    );
+
+                            if (memory >
+                                    peakMemory[0]) {
+
+                                peakMemory[0] =
+                                        memory;
+                            }
+
+                            try {
+
+                                Thread.sleep(20);
+
+                            } catch (InterruptedException e) {
+
+                                Thread.currentThread()
+                                        .interrupt();
+
+                                break;
+                            }
+                        }
+                    });
+
+            memoryMonitor.start();
 
             boolean finished =
                     runProcess.waitFor(
-                            5,
+                            TIME_LIMIT,
                             TimeUnit.SECONDS
                     );
 
-            // 9. Time limit exceeded
+            long endTime =
+                    System.nanoTime();
+
+            long executionTime =
+                    (endTime - startTime)
+                            / 1_000_000;
 
             if (!finished) {
 
@@ -202,28 +237,37 @@ public class CodeExecutorService {
 
                 outputReader.join(1000);
 
+                memoryMonitor.interrupt();
+                memoryMonitor.join(1000);
+
                 return new ExecutionResult(
                         SubmissionStatus.TIME_LIMIT_EXCEEDED,
-                        "Program exceeded 5 seconds"
+                        "Program exceeded 5 seconds",
+                        executionTime,
+                        peakMemory[0]
                 );
             }
 
-            // Wait for output reader
-
             outputReader.join(1000);
 
-            // 10. Output limit exceeded
+            memoryMonitor.interrupt();
+            memoryMonitor.join(1000);
 
+            long memoryUsed =
+                    peakMemory[0];
+
+            // Output limit
             if (outputLimitExceeded[0]) {
 
                 return new ExecutionResult(
                         SubmissionStatus.OUTPUT_LIMIT_EXCEEDED,
-                        "Program output exceeded 1 MB"
+                        "Program output exceeded 1 MB",
+                        executionTime,
+                        memoryUsed
                 );
             }
 
-            // 11. Runtime error
-
+            // Runtime error
             int runExitCode =
                     runProcess.exitValue();
 
@@ -231,32 +275,79 @@ public class CodeExecutorService {
 
                 return new ExecutionResult(
                         SubmissionStatus.RUNTIME_ERROR,
-                        output.toString()
+                        output.toString(),
+                        executionTime,
+                        memoryUsed
                 );
             }
 
-            // 12. Successful execution
-
+            // Success
             return new ExecutionResult(
                     SubmissionStatus.ACCEPTED,
-                    output.toString()
+                    output.toString(),
+                    executionTime,
+                    memoryUsed
             );
 
         } catch (Exception e) {
 
             return new ExecutionResult(
                     SubmissionStatus.EXECUTION_ERROR,
-                    e.getMessage()
+                    e.getMessage(),
+                    0,
+                    0
             );
 
         } finally {
-
-            // 13. Delete temporary files
 
             deleteDirectory(
                     executionDirectory
             );
         }
+    }
+
+    private long getProcessMemory(long pid) {
+
+        try {
+
+            Process process =
+                    new ProcessBuilder(
+                            "powershell",
+                            "-Command",
+                            "(Get-Process -Id " + pid +
+                                    ").WorkingSet64"
+                    )
+                            .redirectErrorStream(true)
+                            .start();
+
+            String result;
+
+            try (BufferedReader reader =
+                         new BufferedReader(
+                                 new InputStreamReader(
+                                         process.getInputStream()
+                                 )
+                         )) {
+
+                result = reader.readLine();
+            }
+
+            process.waitFor(
+                    1,
+                    TimeUnit.SECONDS
+            );
+
+            if (result != null) {
+
+                return Long.parseLong(
+                        result.trim()
+                );
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        return 0;
     }
 
     private void deleteDirectory(
@@ -276,9 +367,7 @@ public class CodeExecutorService {
 
                         try {
 
-                            Files.deleteIfExists(
-                                    path
-                            );
+                            Files.deleteIfExists(path);
 
                         } catch (Exception ignored) {
                         }

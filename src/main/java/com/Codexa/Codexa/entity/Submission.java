@@ -36,6 +36,8 @@ public class Submission {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    private long executionTime;
+    private long memoryUsed;
     public Submission() {
     }
 }

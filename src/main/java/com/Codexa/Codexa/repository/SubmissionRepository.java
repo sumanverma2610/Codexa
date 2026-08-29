@@ -6,6 +6,8 @@ import com.Codexa.Codexa.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SubmissionRepository
         extends JpaRepository<Submission, Long> {
@@ -35,4 +37,16 @@ public interface SubmissionRepository
     Page<Submission> findByStatus(
             SubmissionStatus status,
             Pageable pageable
-    );}
+    );
+
+    @Query("""
+    SELECT COUNT(DISTINCT s.problem.id)
+    FROM Submission s
+    WHERE s.user = :user
+    AND s.status = :status
+""")
+    long countDistinctProblemByUserAndStatus(
+            @Param("user") User user,
+            @Param("status") SubmissionStatus status
+    );
+}
