@@ -31,4 +31,8 @@ public interface SubmissionRepository
     Page<Submission> findAllByOrderByIdDesc(
             Pageable pageable
     );
-}
+
+    Page<Submission> findByStatus(
+            SubmissionStatus status,
+            Pageable pageable
+    );}

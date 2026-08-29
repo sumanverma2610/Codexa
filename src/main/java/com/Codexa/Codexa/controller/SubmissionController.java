@@ -9,6 +9,7 @@ import com.Codexa.Codexa.service.SubmissionService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -115,6 +116,23 @@ public class SubmissionController {
 
         return ResponseEntity.ok(
                 submissionService.getSubmissionStats(email)
+        );
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<Page<SubmissionResponse>> getAllSubmissions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) SubmissionStatus status) {
+
+        return ResponseEntity.ok(
+                submissionService.getAllSubmissions(
+                        page,
+                        size,
+                        status
+                )
         );
     }
 }

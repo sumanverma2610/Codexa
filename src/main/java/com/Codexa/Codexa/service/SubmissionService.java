@@ -2,6 +2,7 @@ package com.Codexa.Codexa.service;
 
 import com.Codexa.Codexa.dto.CreateSubmissionRequest;
 import com.Codexa.Codexa.dto.SubmissionResponse;
+import com.Codexa.Codexa.dto.SubmissionStatsResponse;
 import com.Codexa.Codexa.entity.Problem;
 import com.Codexa.Codexa.entity.Submission;
 import com.Codexa.Codexa.entity.SubmissionStatus;
@@ -15,12 +16,12 @@ import com.Codexa.Codexa.repository.ProblemRepository;
 import com.Codexa.Codexa.repository.SubmissionRepository;
 import com.Codexa.Codexa.repository.TestCaseRepository;
 import com.Codexa.Codexa.repository.UserRepository;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import com.Codexa.Codexa.dto.SubmissionStatsResponse;
 
 import java.util.List;
 
@@ -47,11 +48,14 @@ public class SubmissionService {
         this.testCaseRepository = testCaseRepository;
     }
 
+    // CREATE SUBMISSION
+
     public Submission createSubmission(
             CreateSubmissionRequest request,
             String email) {
 
         // 1. Find problem
+
         Problem problem =
                 problemRepository.findById(
                         request.getProblemId()
@@ -61,6 +65,7 @@ public class SubmissionService {
                         ));
 
         // 2. Find user
+
         User user =
                 userRepository.findByEmail(email)
                         .orElseThrow(() ->
@@ -69,6 +74,7 @@ public class SubmissionService {
                                 ));
 
         // 3. Create submission
+
         Submission submission =
                 new Submission();
 
@@ -88,71 +94,72 @@ public class SubmissionService {
                 user
         );
 
-        // 4. Initially running
+        // 4. Initially RUNNING
+
         submission.setStatus(
                 SubmissionStatus.RUNNING
         );
 
         // 5. Save submission
-        submission =
+
+        Submission savedSubmission =
                 submissionRepository.save(
                         submission
                 );
 
-        // 6. Get all test cases
+        // 6. Get test cases
+
         List<TestCase> testCases =
                 testCaseRepository.findByProblemId(
                         problem.getId()
                 );
 
-        // 7. Check test cases
+        // 7. No test cases
+
         if (testCases.isEmpty()) {
 
-            submission.setStatus(
+            savedSubmission.setStatus(
                     SubmissionStatus.WRONG_ANSWER
             );
 
-            submission.setResult(
+            savedSubmission.setResult(
                     "No test cases found for this problem"
             );
 
             return submissionRepository.save(
-                    submission
+                    savedSubmission
             );
         }
 
         // 8. Run every test case
+
         for (TestCase testCase : testCases) {
 
             ExecutionResult result =
                     codeExecutorService.execute(
-                            submission.getCode(),
+                            savedSubmission.getCode(),
                             testCase.getInput()
                     );
 
-            // ==========================================
             // Execution failed
-            // ==========================================
 
             if (result.getStatus() !=
                     SubmissionStatus.ACCEPTED) {
 
-                submission.setStatus(
+                savedSubmission.setStatus(
                         result.getStatus()
                 );
 
-                submission.setResult(
+                savedSubmission.setResult(
                         result.getOutput()
                 );
 
                 return submissionRepository.save(
-                        submission
+                        savedSubmission
                 );
             }
 
-            // ==========================================
             // Compare output
-            // ==========================================
 
             String actualOutput =
                     result.getOutput().trim();
@@ -166,11 +173,11 @@ public class SubmissionService {
                     expectedOutput
             )) {
 
-                submission.setStatus(
+                savedSubmission.setStatus(
                         SubmissionStatus.WRONG_ANSWER
                 );
 
-                submission.setResult(
+                savedSubmission.setResult(
                         "Expected: "
                                 + expectedOutput
                                 + "\nActual: "
@@ -178,31 +185,29 @@ public class SubmissionService {
                 );
 
                 return submissionRepository.save(
-                        submission
+                        savedSubmission
                 );
             }
         }
 
-        // ==========================================
+        // =================================================
         // All test cases passed
-        // ==========================================
+        // =================================================
 
-        submission.setStatus(
+        savedSubmission.setStatus(
                 SubmissionStatus.ACCEPTED
         );
 
-        submission.setResult(
+        savedSubmission.setResult(
                 "All test cases passed"
         );
 
         return submissionRepository.save(
-                submission
+                savedSubmission
         );
     }
 
-    // ==============================================
-    // Get my submissions
-    // ==============================================
+    // GET MY SUBMISSIONS
 
     public Page<SubmissionResponse> getMySubmissions(
             String email,
@@ -248,9 +253,8 @@ public class SubmissionService {
                 this::convertToResponse
         );
     }
-    // ==============================================
-    // Get submission by ID
-    // ==============================================
+
+    // GET SUBMISSION BY ID
 
     public SubmissionResponse getSubmissionById(
             Long id,
@@ -271,6 +275,7 @@ public class SubmissionService {
                                 ));
 
         // User can only access his own submission
+
         if (!submission.getUser()
                 .getId()
                 .equals(user.getId())) {
@@ -285,9 +290,7 @@ public class SubmissionService {
         );
     }
 
-    // ==============================================
-    // Convert entity to response
-    // ==============================================
+    // CONVERT ENTITY TO RESPONSE
 
     private SubmissionResponse convertToResponse(
             Submission submission) {
@@ -321,6 +324,9 @@ public class SubmissionService {
 
         return response;
     }
+
+    // SUBMISSION STATISTICS
+
     public SubmissionStatsResponse getSubmissionStats(
             String email) {
 
@@ -334,9 +340,15 @@ public class SubmissionService {
         SubmissionStatsResponse response =
                 new SubmissionStatsResponse();
 
+        // Total
+
         response.setTotal(
-                submissionRepository.countByUser(user)
+                submissionRepository.countByUser(
+                        user
+                )
         );
+
+        // Accepted
 
         response.setAccepted(
                 submissionRepository.countByUserAndStatus(
@@ -345,12 +357,16 @@ public class SubmissionService {
                 )
         );
 
+        // Wrong Answer
+
         response.setWrongAnswer(
                 submissionRepository.countByUserAndStatus(
                         user,
                         SubmissionStatus.WRONG_ANSWER
                 )
         );
+
+        // Compilation Error
 
         response.setCompilationError(
                 submissionRepository.countByUserAndStatus(
@@ -359,6 +375,8 @@ public class SubmissionService {
                 )
         );
 
+        // Runtime Error
+
         response.setRuntimeError(
                 submissionRepository.countByUserAndStatus(
                         user,
@@ -366,12 +384,16 @@ public class SubmissionService {
                 )
         );
 
+        // Time Limit Exceeded
+
         response.setTimeLimitExceeded(
                 submissionRepository.countByUserAndStatus(
                         user,
                         SubmissionStatus.TIME_LIMIT_EXCEEDED
                 )
         );
+
+        // Output Limit Exceeded
 
         response.setOutputLimitExceeded(
                 submissionRepository.countByUserAndStatus(
@@ -381,5 +403,42 @@ public class SubmissionService {
         );
 
         return response;
+    }
+
+    // ADMIN - GET ALL SUBMISSIONS
+
+    public Page<SubmissionResponse> getAllSubmissions(
+            int page,
+            int size,
+            SubmissionStatus status) {
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by("id").descending()
+                );
+
+        Page<Submission> submissions;
+
+        if (status != null) {
+
+            submissions =
+                    submissionRepository.findByStatus(
+                            status,
+                            pageable
+                    );
+
+        } else {
+
+            submissions =
+                    submissionRepository.findAllByOrderByIdDesc(
+                            pageable
+                    );
+        }
+
+        return submissions.map(
+                this::convertToResponse
+        );
     }
 }
